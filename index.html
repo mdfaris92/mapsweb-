@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Vector Initial Static Map</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAVuTX2xVdm8OScLSE8kVWr-jP4L2582mw&callback=initMap&v=beta&map_ids=62a6c17b8425251,514436b0710ce497"
+        defer></script>
+    <script>
+        (function (exports) 
+        {
+            "use strict";
+            var mapID = "";
+            var sharedOptions = {};
+
+            // Initialize and add the side by side maps
+            function initMap() {
+
+                sharedOptions = {
+                    center: {
+                        lat: 47.609414458375674,
+                        lng: -122.33897030353548
+                    },
+                    zoom: 17,
+                    disableDefaultUI: false,
+                    gestureHandling: "none"
+                };
+                displayMap();
+
+                document.getElementById("map_id_1").addEventListener("click", function () {
+                    mapID = "514436b0710ce497"
+                    displayMap();
+                });
+
+                document.getElementById("map_id_2").addEventListener("click", function () {
+                    mapID = "62a6c17b8425251"
+                    displayMap();
+                });
+
+            }
+
+            function displayMap() {
+                new google.maps.Map(document.getElementById("map"), {
+                    ...sharedOptions,
+                    mapId: mapID,
+                    useStaticMap: false
+                });
+            }
+
+            exports.initMap = initMap;
+        }
+    )((this.window = this.window || {}));
+    </script>
+    <style>
+        html,
+        body,
+        .container {
+            height: 100%;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0;
+        }
+
+        .map {
+            display: flex;
+            flex-direction: column;
+            flex-basis: 100%;
+            flex: 1;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <button id="map_id_1">Map ID 1</button>
+        <button id="map_id_2">Map ID 2</button>
+    </div>
+    <div class="container">
+        <div id="map" class="map"></div>
+    </div>
+</body>
+
+</html>
