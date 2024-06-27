@@ -1,88 +1,148 @@
-<!DOCTYPE html>
+<!doctype html>
+<!--
+ @license
+ Copyright 2019 Google LLC. All Rights Reserved.
+ SPDX-License-Identifier: Apache-2.0
+-->
 <html>
-
-<head>
-    <title>Vector Initial Static Map</title>
+  <head>
+    <title>Displaying Text Directions With setPanel()</title>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+   <script>
+    /**
+ * @license
+ * Copyright 2019 Google LLC. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+function initMap() {
+  const directionsRenderer = new google.maps.DirectionsRenderer();
+  const directionsService = new google.maps.DirectionsService();
+  const map = new google.maps.Map(document.getElementById("map"), {
+    zoom: 7,
+    center: { lat: 41.85, lng: -87.65 },
+    disableDefaultUI: true,
+  });
+
+  directionsRenderer.setMap(map);
+  directionsRenderer.setPanel(document.getElementById("sidebar"));
+
+  const control = document.getElementById("floating-panel");
+
+  map.controls[google.maps.ControlPosition.TOP_CENTER].push(control);
+
+  const onChangeHandler = function () {
+    calculateAndDisplayRoute(directionsService, directionsRenderer);
+  };
+
+  document.getElementById("start").addEventListener("change", onChangeHandler);
+  document.getElementById("end").addEventListener("change", onChangeHandler);
+}
+
+function calculateAndDisplayRoute(directionsService, directionsRenderer) {
+  const start = document.getElementById("start").value;
+  const end = document.getElementById("end").value;
+
+  directionsService
+    .route({
+      origin: start,
+      destination: end,
+      travelMode: google.maps.TravelMode.DRIVING,
+    })
+    .then((response) => {
+      directionsRenderer.setDirections(response);
+    })
+    .catch((e) => window.alert("Directions request failed due to " + status));
+}
+
+window.initMap = initMap;
+
+   </script>
+  <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <div id="floating-panel">
+      <strong>Start:</strong>
+      <select id="start">
+        <option value="chicago, il">Chicago</option>
+        <option value="st louis, mo">St Louis</option>
+        <option value="joplin, mo">Joplin, MO</option>
+        <option value="oklahoma city, ok">Oklahoma City</option>
+        <option value="amarillo, tx">Amarillo</option>
+        <option value="gallup, nm">Gallup, NM</option>
+        <option value="flagstaff, az">Flagstaff, AZ</option>
+        <option value="winona, az">Winona</option>
+        <option value="kingman, az">Kingman</option>
+        <option value="barstow, ca">Barstow</option>
+        <option value="san bernardino, ca">San Bernardino</option>
+        <option value="los angeles, ca">Los Angeles</option>
+      </select>
+      <br />
+      <strong>End:</strong>
+      <select id="end">
+        <option value="chicago, il">Chicago</option>
+        <option value="st louis, mo">St Louis</option>
+        <option value="joplin, mo">Joplin, MO</option>
+        <option value="oklahoma city, ok">Oklahoma City</option>
+        <option value="amarillo, tx">Amarillo</option>
+        <option value="gallup, nm">Gallup, NM</option>
+        <option value="flagstaff, az">Flagstaff, AZ</option>
+        <option value="winona, az">Winona</option>
+        <option value="kingman, az">Kingman</option>
+        <option value="barstow, ca">Barstow</option>
+        <option value="san bernardino, ca">San Bernardino</option>
+        <option value="los angeles, ca">Los Angeles</option>
+      </select>
+    </div>
+    <div id="container">
+      <div id="map"></div>
+      <div id="sidebar"></div>
+    </div>
+    <div style="display: none">
+      <div id="floating-panel">
+        <strong>Start:</strong>
+        <select id="start">
+          <option value="chicago, il">Chicago</option>
+          <option value="st louis, mo">St Louis</option>
+          <option value="joplin, mo">Joplin, MO</option>
+          <option value="oklahoma city, ok">Oklahoma City</option>
+          <option value="amarillo, tx">Amarillo</option>
+          <option value="gallup, nm">Gallup, NM</option>
+          <option value="flagstaff, az">Flagstaff, AZ</option>
+          <option value="winona, az">Winona</option>
+          <option value="kingman, az">Kingman</option>
+          <option value="barstow, ca">Barstow</option>
+          <option value="san bernardino, ca">San Bernardino</option>
+          <option value="los angeles, ca">Los Angeles</option>
+        </select>
+        <br />
+        <strong>End:</strong>
+        <select id="end">
+          <option value="chicago, il">Chicago</option>
+          <option value="st louis, mo">St Louis</option>
+          <option value="joplin, mo">Joplin, MO</option>
+          <option value="oklahoma city, ok">Oklahoma City</option>
+          <option value="amarillo, tx">Amarillo</option>
+          <option value="gallup, nm">Gallup, NM</option>
+          <option value="flagstaff, az">Flagstaff, AZ</option>
+          <option value="winona, az">Winona</option>
+          <option value="kingman, az">Kingman</option>
+          <option value="barstow, ca">Barstow</option>
+          <option value="san bernardino, ca">San Bernardino</option>
+          <option value="los angeles, ca">Los Angeles</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 
+      The `defer` attribute causes the script to execute after the full HTML
+      document has been parsed. For non-blocking uses, avoiding race conditions,
+      and consistent behavior across browsers, consider loading using Promises. See
+      https://developers.google.com/maps/documentation/javascript/load-maps-js-api
+      for more information.
+      -->
     <script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAVuTX2xVdm8OScLSE8kVWr-jP4L2582mw&callback=initMap&v=beta&map_ids=62a6c17b8425251,514436b0710ce497"
-        defer></script>
-    <script>
-        (function (exports) 
-        {
-            "use strict";
-            var mapID = "";
-            var sharedOptions = {};
-
-            // Initialize and add the side by side maps
-            function initMap() {
-
-                sharedOptions = {
-                    center: {
-                        lat: 47.609414458375674,
-                        lng: -122.33897030353548
-                    },
-                    zoom: 17,
-                    disableDefaultUI: false,
-                    gestureHandling: "none"
-                };
-                displayMap();
-
-                document.getElementById("map_id_1").addEventListener("click", function () {
-                    mapID = "514436b0710ce497"
-                    displayMap();
-                });
-
-                document.getElementById("map_id_2").addEventListener("click", function () {
-                    mapID = "62a6c17b8425251"
-                    displayMap();
-                });
-
-            }
-
-            function displayMap() {
-                new google.maps.Map(document.getElementById("map"), {
-                    ...sharedOptions,
-                    mapId: mapID,
-                    useStaticMap: false
-                });
-            }
-
-            exports.initMap = initMap;
-        }
-    )((this.window = this.window || {}));
-    </script>
-    <style>
-        html,
-        body,
-        .container {
-            height: 100%;
-        }
-
-        .container {
-            display: flex;
-            flex-wrap: wrap;
-            margin: 0;
-        }
-
-        .map {
-            display: flex;
-            flex-direction: column;
-            flex-basis: 100%;
-            flex: 1;
-            height: 100%;
-        }
-    </style>
-</head>
-
-<body>
-    <div>
-        <button id="map_id_1">Map ID 1</button>
-        <button id="map_id_2">Map ID 2</button>
-    </div>
-    <div class="container">
-        <div id="map" class="map"></div>
-    </div>
-</body>
-
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAVuTX2xVdm8OScLSE8kVWr-jP4L2582mw&callback=initMap&v=weekly"
+      defer
+    ></script>
+  </body>
 </html>
