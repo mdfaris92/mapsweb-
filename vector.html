@@ -1,66 +1,162 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <title>Vector Initial Static Map</title>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
     <script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAVuTX2xVdm8OScLSE8kVWr-jP4L2582mw&callback=initMap&v=beta&map_ids=62a6c17b8425251,514436b0710ce497"
-        defer></script>
-    <script>
-        // Ensure global scope for initMap callback
-     /**
- * @license
- * Copyright 2021 Google LLC.
- * SPDX-License-Identifier: Apache-2.0
- */
-function initMap() {
-  const map = new google.maps.Map(document.getElementById("map"), {
-    center: {
-      lat: 37.7893719,
-      lng: -122.3942,
-    },
-    zoom: 16,
-    heading: 320,
-    tilt: 47.5,
-    mapId: "90f87356969d889c",
-  });
-  const buttons = [
-    ["Rotate Left", "rotate", 20, google.maps.ControlPosition.LEFT_CENTER],
-    ["Rotate Right", "rotate", -20, google.maps.ControlPosition.RIGHT_CENTER],
-    ["Tilt Down", "tilt", 20, google.maps.ControlPosition.TOP_CENTER],
-    ["Tilt Up", "tilt", -20, google.maps.ControlPosition.BOTTOM_CENTER],
-  ];
-
-  buttons.forEach(([text, mode, amount, position]) => {
-    const controlDiv = document.createElement("div");
-    const controlUI = document.createElement("button");
-
-    controlUI.classList.add("ui-button");
-    controlUI.innerText = `${text}`;
-    controlUI.addEventListener("click", () => {
-      adjustMap(mode, amount);
-    });
-    controlDiv.appendChild(controlUI);
-    map.controls[position].push(controlDiv);
-  });
-
-  const adjustMap = function (mode, amount) {
-    switch (mode) {
-      case "tilt":
-        map.setTilt(map.getTilt() + amount);
-        break;
-      case "rotate":
-        map.setHeading(map.getHeading() + amount);
-        break;
-      default:
-        break;
-    }
-  };
-}
-
-window.initMap = initMap;
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAVuTX2xVdm8OScLSE8kVWr-jP4L2582mw&callback=initMap&v=beta"
+   async defer>
 </script>
+    <script>
+        (function (exports) {
+            var map;
+            var bikeMarker;
+            var instructionsPanel;
+            var directionsService;
+            var directionsRenderer;
+            var routeCoordinates = [];
+            var instructions = [];
+
+            function initMap() {
+                displayMap();
+            }
+
+            function displayMap() {
+                map = new google.maps.Map(document.getElementById("map"), {
+                    center: { lat: 51.503399, lng: -0.119519 },
+                    zoom: 17,
+                    heading: 320,
+                    tilt: 50,
+                    mapId: "7c913e398bf72d2d",
+                    disableDefaultUI: true,
+                });
+
+                getDirection();
+                setupInstructionsPanel();
+            }
+
+            function getDirection() {
+                directionsRenderer = new google.maps.DirectionsRenderer();
+                directionsService = new google.maps.DirectionsService();
+                directionsRenderer.setMap(map);
+
+                const start = "Royal Enfield HQ, Sholinganallur, Chennai";
+                const end = "Karapakkam, Chennai";
+
+                directionsService.route({
+                    origin: start,
+                    destination: end,
+                    travelMode: google.maps.TravelMode.DRIVING,
+                }, (response, status) => {
+                    if (status === google.maps.DirectionsStatus.OK) {
+                        directionsRenderer.setDirections(response);
+                        extractRouteCoordinates(response.routes[0].legs[0]);
+                        displayRouteInfo(response.routes[0].legs[0]);
+
+                        // Animate bike marker along the route
+                        animateBikeAlongRoute();
+                    } else {
+                        console.error("Directions request failed due to " + status);
+                    }
+                });
+            }
+
+            function extractRouteCoordinates(routeLeg) {
+                routeCoordinates = [];
+                instructions = [];
+                routeLeg.steps.forEach((step) => {
+                    routeCoordinates.push(step.start_location);
+                    instructions.push({
+                        text: step.instructions,
+                        distance: step.distance.text,
+                        duration: step.duration.text
+                    });
+                    if (step.steps) {
+                        step.steps.forEach((substep) => {
+                            routeCoordinates.push(substep.start_location);
+                            instructions.push({
+                                text: substep.instructions,
+                                distance: substep.distance.text,
+                                duration: substep.duration.text
+                            });
+                        });
+                    }
+                });
+                routeCoordinates.push(routeLeg.end_location);
+                instructions.push({
+                    text: "Arrive at destination",
+                    distance: "",
+                    duration: ""
+                });
+            }
+
+            function setupInstructionsPanel() {
+                instructionsPanel = document.createElement("div");
+                instructionsPanel.id = "instructions-panel";
+                instructionsPanel.className = "custom-map-control-container";
+                map.controls[google.maps.ControlPosition.TOP_LEFT].push(instructionsPanel);
+            }
+
+            function animateBikeAlongRoute() {
+                if (!routeCoordinates.length) return;
+
+                // Set bike marker at the start location
+                bikeMarker = new google.maps.Marker({
+                    position: routeCoordinates[0],
+                    map: map,
+                    icon: {
+                        url: "https://maps.google.com/mapfiles/kml/shapes/cycling.png",
+                        scaledSize: new google.maps.Size(48, 48),
+                        origin: new google.maps.Point(0, 0),
+                        anchor: new google.maps.Point(24, 24),
+                    },
+                });
+
+                var speed = 2000; // Adjust as needed for animation speed
+                var index = 0;
+
+                function animate() {
+                    if (index < routeCoordinates.length) {
+                        bikeMarker.setPosition(routeCoordinates[index]);
+                        map.panTo(routeCoordinates[index]);
+                        map.setZoom(18); // Set desired zoom level
+                        map.setTilt(45); // Set desired tilt
+                        displayCurrentInstruction(index);
+                        index++;
+                        setTimeout(animate, speed);
+                    }
+                }
+
+                animate();
+            }
+
+            function displayCurrentInstruction(index) {
+                if (!instructionsPanel) return;
+
+                var instructionHTML = "<div>";
+                instructionHTML += "<p><strong>Instruction:</strong> " + instructions[index].text + "</p>";
+                instructionHTML += "<p><strong>Distance:</strong> " + instructions[index].distance + "</p>";
+                instructionHTML += "<p><strong>Duration:</strong> " + instructions[index].duration + "</p>";
+                instructionHTML += "</div>";
+
+                instructionsPanel.innerHTML = instructionHTML;
+            }
+
+            function displayRouteInfo(routeLeg) {
+                if (!instructionsPanel) return;
+
+                var routeInfoHTML = "<div>";
+                routeInfoHTML += "<p><strong>Total Distance:</strong> " + routeLeg.distance.text + "</p>";
+                routeInfoHTML += "<p><strong>Total Duration:</strong> " + routeLeg.duration.text + "</p>";
+                routeInfoHTML += "</div>";
+
+                instructionsPanel.innerHTML += routeInfoHTML;
+            }
+
+            exports.initMap = initMap;
+        })((this.window = this.window || {}));
+    </script>
+
     <style>
         html,
         body,
@@ -76,35 +172,21 @@ window.initMap = initMap;
 
         .map {
             flex: 1;
-            height: 60%;
+            height: 100%;
         }
 
-        #directionsPanel {
-            height: 40%;
-            overflow-y: auto;
-            border: 1px solid #ccc;
+        .custom-map-control-container {
+            background-color: white;
             padding: 10px;
-        }
-
-        button {
-            margin: 10px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
         }
     </style>
 </head>
 
 <body>
-    <div>
-        <form id="routeForm">
-            <label for="sourceInput">Source:</label>
-            <input type="text" id="sourceInput" name="sourceInput" required>
-            <label for="destinationInput">Destination:</label>
-            <input type="text" id="destinationInput" name="destinationInput" required>
-            <button type="submit">Plan Route</button>
-        </form>
-    </div>
     <div class="container">
         <div id="map" class="map"></div>
-        <div id="directionsPanel"></div>
     </div>
 </body>
 
