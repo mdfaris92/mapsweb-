@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Vector Initial Static Map</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAVuTX2xVdm8OScLSE8kVWr-jP4L2582mw&callback=initMap&v=beta"
+       async defer>
+    </script>
+
+     <script>
+
+
+        (function (exports) 
+        {
+
+        var map;
+        var infoWindow;
+
+            function initMap() {
+                displayMap();
+            }
+
+            function displayMap() {
+              map = new google.maps.Map(document.getElementById("map"), {
+                    center: { lat: 51.503399, lng:  -0.119519 },
+                    zoom: 17,
+                    heading: 320,
+                    tilt:50,
+                    mapId: "7c913e398bf72d2d",
+                    disableDefaultUI: true,
+                    
+                });
+
+                getLocation()
+                getDirection()
+            }
+
+            function getLocation(){
+            
+                infoWindow = new google.maps.InfoWindow();
+                const locationButton = document.createElement("button");
+
+                locationButton.textContent = "Pan to Current Location";
+                locationButton.classList.add("custom-map-control-button");
+                map.controls[google.maps.ControlPosition.TOP_CENTER].push(locationButton);
+                locationButton.addEventListener("click", () => {
+                    // Try HTML5 geolocation.
+                    if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                        const pos = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude,
+                        };
+                        
+                        var marker = new google.maps.Marker({position:pos});
+                        marker.setMap(map);
+                        // infoWindow.setPosition(pos);
+                        // infoWindow.setContent("Location found.");
+                        // infoWindow.open(map);
+                    
+                        map.setCenter(pos);
+                        },
+                        () => {
+                        handleLocationError(true, infoWindow, map.getCenter());
+                        },
+                    );
+                    } else {
+                    // Browser doesn't support Geolocation
+                    handleLocationError(false, infoWindow, map.getCenter());
+                    }
+                });
+            }
+
+            function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+                infoWindow.setPosition(pos);
+                infoWindow.setContent(
+                    browserHasGeolocation
+                    ? "Error: The Geolocation service failed."
+                    : "Error: Your browser doesn't support geolocation.",
+                );
+                infoWindow.open(map);
+            }
+
+            function getDirection(){
+                const directionsRenderer = new google.maps.DirectionsRenderer();
+                const directionsService = new google.maps.DirectionsService();
+                directionsRenderer.setMap(map);
+            
+                const start = "joplin, mo";
+                const end = "Kingman";
+
+                directionsService
+                    .route({
+                    origin: start,
+                    destination: end,
+                    travelMode: google.maps.TravelMode.DRIVING,
+                    })
+                    .then((response) => {
+                        console.log(response.routes[0].legs[0].steps)
+                    directionsRenderer.setDirections(response);
+                    })
+                .catch((e) => window.alert("Directions request failed due to " + status));
+
+                const pos1 = {
+                            lat: 35.173500000000004,
+                            lng: -103.51315000000001,
+                        };
+
+                        var marker = new google.maps.Marker({position:pos1});
+                        marker.setMap(map);
+            }
+
+        exports.initMap = initMap;
+        }
+    )((this.window = this.window || {}));
+
+    </script>
+
+    <style>
+            html,
+            body,
+            .container {
+                height: 100%;
+            }
+    
+            .container {
+                display: flex;
+                flex-wrap: wrap;
+                margin: 0;
+            }
+    
+            .map {
+                display: flex;
+                flex-direction: column;
+                flex-basis: 100%;
+                flex: 1;
+                height: 100%;
+            }
+    </style>
+</head>
+    
+    <body>
+        <div class="container">
+            <div id="map" class="map"></div>
+        </div>
+    </body>
+    
+</html>
