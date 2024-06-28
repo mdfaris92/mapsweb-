@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Vector Initial Static Map</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAVuTX2xVdm8OScLSE8kVWr-jP4L2582mw&callback=initMap&v=beta&map_ids=62a6c17b8425251,514436b0710ce497"
+        defer></script>
+    <script>
+        // Ensure global scope for initMap callback
+     /**
+ * @license
+ * Copyright 2021 Google LLC.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+function initMap() {
+  const map = new google.maps.Map(document.getElementById("map"), {
+    center: {
+      lat: 37.7893719,
+      lng: -122.3942,
+    },
+    zoom: 16,
+    heading: 320,
+    tilt: 47.5,
+    mapId: "90f87356969d889c",
+  });
+  const buttons = [
+    ["Rotate Left", "rotate", 20, google.maps.ControlPosition.LEFT_CENTER],
+    ["Rotate Right", "rotate", -20, google.maps.ControlPosition.RIGHT_CENTER],
+    ["Tilt Down", "tilt", 20, google.maps.ControlPosition.TOP_CENTER],
+    ["Tilt Up", "tilt", -20, google.maps.ControlPosition.BOTTOM_CENTER],
+  ];
+
+  buttons.forEach(([text, mode, amount, position]) => {
+    const controlDiv = document.createElement("div");
+    const controlUI = document.createElement("button");
+
+    controlUI.classList.add("ui-button");
+    controlUI.innerText = `${text}`;
+    controlUI.addEventListener("click", () => {
+      adjustMap(mode, amount);
+    });
+    controlDiv.appendChild(controlUI);
+    map.controls[position].push(controlDiv);
+  });
+
+  const adjustMap = function (mode, amount) {
+    switch (mode) {
+      case "tilt":
+        map.setTilt(map.getTilt() + amount);
+        break;
+      case "rotate":
+        map.setHeading(map.getHeading() + amount);
+        break;
+      default:
+        break;
+    }
+  };
+}
+
+window.initMap = initMap;
+</script>
+    <style>
+        html,
+        body,
+        .container {
+            height: 100%;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .map {
+            flex: 1;
+            height: 60%;
+        }
+
+        #directionsPanel {
+            height: 40%;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        button {
+            margin: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <form id="routeForm">
+            <label for="sourceInput">Source:</label>
+            <input type="text" id="sourceInput" name="sourceInput" required>
+            <label for="destinationInput">Destination:</label>
+            <input type="text" id="destinationInput" name="destinationInput" required>
+            <button type="submit">Plan Route</button>
+        </form>
+    </div>
+    <div class="container">
+        <div id="map" class="map"></div>
+        <div id="directionsPanel"></div>
+    </div>
+</body>
+
+</html>
