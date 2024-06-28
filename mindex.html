@@ -34,7 +34,7 @@
                 });
 
                 getLocation()
-                getDirection()
+               getDirection()
             }
 
             function getLocation(){
@@ -89,8 +89,8 @@
                 const directionsService = new google.maps.DirectionsService();
                 directionsRenderer.setMap(map);
             
-                const start = "joplin, mo";
-                const end = "Kingman";
+                const start = "Royal enfield HQ, Sholinganallur,chennai";
+                const end = "Karapkkam, Chennai";
 
                 directionsService
                     .route({
@@ -104,13 +104,36 @@
                     })
                 .catch((e) => window.alert("Directions request failed due to " + status));
 
-                const pos1 = {
-                            lat: 35.173500000000004,
-                            lng: -103.51315000000001,
+                const a = {
+                            lat: 12.9028484,
+                            lng: 80.2272198,
                         };
 
-                        var marker = new google.maps.Marker({position:pos1});
+                        var marker = new google.maps.Marker({position:a});
                         marker.setMap(map);
+
+                        const b = {
+                            lat: 37.0842449,
+                            lng: -94.513284,
+                        };
+
+                        var marker = new google.maps.Marker({position:b});
+                        marker.setMap(map);
+
+                        const pinBorder = new PinElement({
+                            borderColor: "#137333",
+                            });
+                         const markerViewBorder = new AdvancedMarkerElement({
+                            map,
+                            position: { lat: 37.0844602, lng: -94.5132756 },
+                            content: pinBorder.element,
+                            });
+
+
+
+
+
+
             }
 
         exports.initMap = initMap;
