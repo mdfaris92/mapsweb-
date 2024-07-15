@@ -17,7 +17,8 @@
 
         var map;
         var infoWindow;
-
+        
+      
             function initMap() {
                 displayMap();
             }
@@ -33,20 +34,12 @@
                     
                 });
 
-                getLocation()
+                setInterval(getLocation,1000)
                getDirection()
             }
 
             function getLocation(){
             
-                infoWindow = new google.maps.InfoWindow();
-                const locationButton = document.createElement("button");
-
-                locationButton.textContent = "Pan to Current Location";
-                locationButton.classList.add("custom-map-control-button");
-                map.controls[google.maps.ControlPosition.TOP_CENTER].push(locationButton);
-                locationButton.addEventListener("click", () => {
-                    // Try HTML5 geolocation.
                     if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
                         (position) => {
@@ -54,13 +47,13 @@
                             lat: position.coords.latitude,
                             lng: position.coords.longitude,
                         };
+
+                        console.log(pos)
                         
-                        var marker = new google.maps.Marker({position:pos});
+                        var marker = new google.maps.Marker({position:pos
+                        });
                         marker.setMap(map);
-                        // infoWindow.setPosition(pos);
-                        // infoWindow.setContent("Location found.");
-                        // infoWindow.open(map);
-                    
+                       
                         map.setCenter(pos);
                         },
                         () => {
@@ -71,7 +64,7 @@
                     // Browser doesn't support Geolocation
                     handleLocationError(false, infoWindow, map.getCenter());
                     }
-                });
+                
             }
 
             function handleLocationError(browserHasGeolocation, infoWindow, pos) {
@@ -90,7 +83,7 @@
                 directionsRenderer.setMap(map);
             
                 const start = "Royal enfield HQ, Sholinganallur,chennai";
-                const end = "Karapkkam, Chennai";
+                const end = "BSR Mall, Chennai";
 
                 directionsService
                     .route({
@@ -101,38 +94,17 @@
                     .then((response) => {
                         console.log(response.routes[0].legs[0].steps)
                     directionsRenderer.setDirections(response);
+
+                    for(var i = 0; i<response.routes[0].legs[0].steps.length; i++){
+
+                        var marker = new google.maps.Marker({position:response.routes[0].legs[0].steps[i].end_location});
+                        marker.setMap(map);
+                   
+                     }
+
+
                     })
                 .catch((e) => window.alert("Directions request failed due to " + status));
-
-                const a = {
-                            lat: 12.9028484,
-                            lng: 80.2272198,
-                        };
-
-                        var marker = new google.maps.Marker({position:a});
-                        marker.setMap(map);
-
-                        const b = {
-                            lat: 37.0842449,
-                            lng: -94.513284,
-                            
-                        };
-
-                        var marker = new google.maps.Marker({position:b});
-                        marker.setMap(map);
-
-                        const pinBorder = new PinElement({
-                            borderColor: "#137333",
-                            });
-                         const markerViewBorder = new AdvancedMarkerElement({
-                            map,
-                            position: { lat: 37.0844602, lng: -94.5132756 },
-                            content: pinBorder.element,
-                            });
-
-
-
-
 
 
             }

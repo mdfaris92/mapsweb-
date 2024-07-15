@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Maps Follow Behind Marker</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=geometry"></script>
+    <style>
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        let map;
+        let currentMarker;
+        let curr_pos = new google.maps.LatLng(0, 0); // Initial position
+        const animationDuration = 1000; // Duration of animation in milliseconds
+        const cameraOffsetDistance = 50; // Distance behind the marker where the camera should be
+        const markerOffsetFactor = 0.25; // Fraction of the map height from the bottom where the marker should be
+
+        function initializeMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: curr_pos,
+                zoom: 15,
+                tilt: 45,
+                mapTypeId: google.maps.MapTypeId.ROADMAP
+            });
+
+            currentMarker = new google.maps.Marker({
+                position: curr_pos,
+                map: map,
+                title: "Current Location"
+            });
+
+            updateLocation();
+            setInterval(updateLocation, 1000); // Update location every 1 second
+        }
+
+        function updateLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const targetPosition = new google.maps.LatLng(
+                        position.coords.latitude,
+                        position.coords.longitude
+                    );
+                    const heading = position.coords.heading || calculateBearing(curr_pos, targetPosition);
+                    animateMarkerAndCamera(targetPosition, heading);
+                }, error => {
+                    console.error("Error getting current position:", error);
+                }, {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                });
+            }
+        }
+
+        function animateMarkerAndCamera(targetPosition, heading) {
+            if (!targetPosition) return;
+
+            const startTime = Date.now();
+            const initialPosition = curr_pos;
+
+            const animationInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                if (elapsed > animationDuration) {
+                    clearInterval(animationInterval);
+                    currentMarker.setPosition(targetPosition);
+                    curr_pos = targetPosition;
+                    updateCameraPosition(targetPosition, heading);
+                    return;
+                }
+
+                const t = elapsed / animationDuration; // Interpolation factor (0 to 1)
+                const interpolatedPosition = google.maps.geometry.spherical.interpolate(
+                    initialPosition,
+                    targetPosition,
+                    t
+                );
+
+                currentMarker.setPosition(interpolatedPosition);
+                updateCameraPosition(interpolatedPosition, heading);
+            }, 50); // Adjust interval for smoother animation
+        }
+
+        function calculateBearing(startPos, endPos) {
+            return google.maps.geometry.spherical.computeHeading(startPos, endPos);
+        }
+
+        function updateCameraPosition(position, heading) {
+            // Calculate the offset position behind the marker
+            const offsetDistance = cameraOffsetDistance; // Define how far behind the camera should be
+            const headingRad = (heading + 180) * Math.PI / 180; // Reverse the heading to get behind the marker
+            const offsetLat = position.lat() + (Math.sin(headingRad) * offsetDistance / 111111); // 111111 meters per degree latitude
+            const offsetLng = position.lng() + (Math.cos(headingRad) * offsetDistance / (111111 * Math.cos(position.lat() * Math.PI / 180))); // Adjust for longitude
+
+            const cameraPosition = new google.maps.LatLng(offsetLat, offsetLng);
+
+            // Adjust the camera position to account for the desired marker offset from the bottom
+            const screenHeight = window.innerHeight;
+            const mapHeight = map.getDiv().offsetHeight;
+            const verticalOffsetMeters = (screenHeight * markerOffsetFactor) / 111111; // Convert pixels to degrees latitude
+            const adjustedLat = position.lat() + verticalOffsetMeters;
+
+            const adjustedCameraPosition = new google.maps.LatLng(adjustedLat, cameraPosition.lng());
+
+            // Set the map's center to the calculated position
+            map.setCenter(adjustedCameraPosition);
+            map.setHeading(heading); // Rotate the map to match the user's heading
+            map.setTilt(45); // Optional: Adjust tilt for a better following view
+        }
+
+        window.onload = initializeMap;
+    </script>
+</body>
+</html>
+
+---------------------------------------------------------------------
+
+turn by turn navigation
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turn-by-Turn Navigation</title>
+</head>
+<body>
+    <h1>Turn-by-Turn Navigation</h1>
+    <div id="instructions"></div>
+
+    <script>
+        function getCurrentLocation(callback) {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        callback(position.coords);
+                    },
+                    (error) => {
+                        console.error('Error getting location', error);
+                    },
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                console.error('Geolocation is not supported by this browser.');
+            }
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth's radius in meters
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c; // Distance in meters
+        }
+
+        function getNextStep(currentCoords, steps) {
+            let closestStep = null;
+            let minDistance = Infinity;
+
+            steps.forEach(step => {
+                const startDist = calculateDistance(
+                    currentCoords.latitude,
+                    currentCoords.longitude,
+                    step.start_location.lat,
+                    step.start_location.lng
+                );
+                const endDist = calculateDistance(
+                    currentCoords.latitude,
+                    currentCoords.longitude,
+                    step.end_location.lat,
+                    step.end_location.lng
+                );
+
+                const closestDist = Math.min(startDist, endDist);
+                if (closestDist < minDistance) {
+                    minDistance = closestDist;
+                    closestStep = step;
+                }
+            });
+
+            return closestStep;
+        }
+
+        function displayNextInstruction(step) {
+            const instructionsDiv = document.getElementById('instructions');
+            if (step) {
+                instructionsDiv.innerHTML = `
+                    <p>Next Instruction: ${step.html_instructions}</p>
+                    <p>Distance to next step: ${step.distance.text}</p>
+                `;
+            } else {
+                instructionsDiv.innerHTML = '<p>No more steps.</p>';
+            }
+        }
+
+        const steps = [
+            // Example steps array from the Directions API response
+            {
+                distance: { text: '0.4 km', value: 400 },
+                duration: { text: '3 mins', value: 180 },
+                start_location: { lat: 40.771133, lng: -73.974187 },
+                end_location: { lat: 40.767937, lng: -73.982155 },
+                html_instructions: 'Head <b>south</b> on <b>Central Park West</b> toward <b>W 59th St</b>',
+                polyline: { points: 'abcdEfghIjklMnopQrstu' },
+                travel_mode: 'DRIVING',
+                maneuver: 'turn-right'
+            },
+            {
+                distance: { text: '0.7 km', value: 700 },
+                duration: { text: '5 mins', value: 300 },
+                start_location: { lat: 40.767937, lng: -73.982155 },
+                end_location: { lat: 40.76142, lng: -73.982142 },
+                html_instructions: 'Turn <b>right</b> onto <b>W 59th St</b>',
+                polyline: { points: 'mnopQrstUvwxyzAbcDe' },
+                travel_mode: 'DRIVING',
+                maneuver: 'turn-right'
+            },
+            // Additional steps...
+        ];
+
+        function updateNavigation() {
+            getCurrentLocation((currentCoords) => {
+                const nextStep = getNextStep(currentCoords, steps);
+                displayNextInstruction(nextStep);
+            });
+        }
+
+        // Update navigation every 5 seconds
+        setInterval(updateNavigation, 5000);
+    </script>
+</body>
+</html>
+
+
+
+------------------------------------------------------------------------------------
+
+
+
+<script>
+    let map, marker, directionsService, directionsRenderer;
+    let currentStepIndex = 0; // Track the current step index
+    const steps = []; // Store steps of the route
+    
+    function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: { lat: 40.771133, lng: -73.974187 }, // Central Park, NY
+            zoom: 14
+        });
+    
+        marker = new google.maps.Marker({
+            map: map,
+            title: 'Your Location'
+        });
+    
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer({
+            map: map,
+            suppressMarkers: true // Use our own marker
+        });
+    
+        getDirections('Central Park, NY', 'Times Square, NY');
+        updateLocation();
+    }
+    
+    function getDirections(origin, destination) {
+        const request = {
+            origin: origin,
+            destination: destination,
+            travelMode: google.maps.TravelMode.DRIVING
+        };
+    
+        directionsService.route(request, (response, status) => {
+            if (status === google.maps.DirectionsStatus.OK) {
+                directionsRenderer.setDirections(response);
+                const route = response.routes[0];
+                const leg = route.legs[0];
+                steps.push(...leg.steps);
+                updateInstructions(currentStepIndex);
+            } else {
+                console.error('Directions request failed due to ' + status);
+            }
+        });
+    }
+    
+    function updateLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    const currentCoords = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    marker.setPosition(currentCoords);
+                    map.setCenter(currentCoords);
+                    updateCurrentStep(currentCoords);
+                },
+                (error) => {
+                    console.error('Error getting location', error);
+                },
+                { enableHighAccuracy: true }
+            );
+        } else {
+            console.error('Geolocation is not supported by this browser.');
+        }
+    }
+    
+    function updateCurrentStep(currentCoords) {
+        if (currentStepIndex >= steps.length) return; // No more steps
+    
+        const step = steps[currentStepIndex];
+        const stepEnd = {
+            lat: step.end_location.lat(),
+            lng: step.end_location.lng()
+        };
+    
+        const distanceToEnd = google.maps.geometry.spherical.computeDistanceBetween(
+            new google.maps.LatLng(currentCoords.lat, currentCoords.lng),
+            new google.maps.LatLng(stepEnd.lat, stepEnd.lng)
+        );
+    
+        // Update the instructions with the remaining distance
+        displayNextInstruction(step, distanceToEnd);
+    
+        // Move to the next step if the distance to the end of the current step is less than a threshold
+        if (distanceToEnd < 10) { // Threshold can be adjusted
+            currentStepIndex++;
+            updateInstructions(currentStepIndex);
+        }
+    }
+    
+    function displayNextInstruction(step, distanceToEnd) {
+        const instructionsDiv = document.getElementById('instructions');
+        if (step) {
+            instructionsDiv.innerHTML = `
+                <p>Next Instruction: ${step.html_instructions}</p>
+                <p>Remaining distance to next step: ${Math.round(distanceToEnd)} meters</p>
+            `;
+        } else {
+            instructionsDiv.innerHTML = '<p>No more steps.</p>';
+        }
+    }
+    
+    function updateInstructions(stepIndex) {
+        const instructionsDiv = document.getElementById('instructions');
+        if (stepIndex < steps.length) {
+            const step = steps[stepIndex];
+            instructionsDiv.innerHTML = <p>Next Instruction: ${step.html_instructions}</p>;
+        } else {
+            instructionsDiv.innerHTML = '<p>You have reached your destination.</p>';
+        }
+    }
+    
+    // Initialize map
+    initMap();
+    </script>
+
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+function updateCurrentStep(currentCoords) {
+    if (currentStepIndex >= steps.length) return; // No more steps
+
+    const step = steps[currentStepIndex];
+    let nextStep = null;
+
+    if (currentStepIndex + 1 < steps.length) {
+        nextStep = steps[currentStepIndex + 1];
+    }
+
+    const stepEnd = {
+        lat: step.end_location.lat(),
+        lng: step.end_location.lng()
+    };
+
+    const distanceToEnd = google.maps.geometry.spherical.computeDistanceBetween(
+        new google.maps.LatLng(currentCoords.lat, currentCoords.lng),
+        new google.maps.LatLng(stepEnd.lat, stepEnd.lng)
+    );
+
+    // Calculate distance to the start of the next step, if it exists
+    let distanceToNextStepStart = Infinity;
+    if (nextStep) {
+        const nextStepStart = {
+            lat: nextStep.start_location.lat(),
+            lng: nextStep.start_location.lng()
+        };
+        distanceToNextStepStart = google.maps.geometry.spherical.computeDistanceBetween(
+            new google.maps.LatLng(currentCoords.lat, currentCoords.lng),
+            new google.maps.LatLng(nextStepStart.lat, nextStepStart.lng)
+        );
+    }
+
+    // Update the instructions with the remaining distance
+    displayNextInstruction(step, nextStep, distanceToEnd);
+
+    // Move to the next step if the distance to the end of the current step is less than a threshold
+    // or if the distance to the start of the next step is less than a threshold
+    const threshold = 10; // Adjust this value as needed
+    if (distanceToEnd < threshold || distanceToNextStepStart < threshold) {
+        currentStepIndex++;
+        updateInstructions(currentStepIndex, distanceToEnd);
+    }
+}
+
+function displayNextInstruction(step, nextStep, distanceToEnd) {
+    const instructionsDiv = document.getElementById('instructions');
+    let nextInstruction = step.html_instructions;
+    if (nextStep) {
+        nextInstruction += <br>Then: ${nextStep.html_instructions};
+    }
+    instructionsDiv.innerHTML = `
+        <p>Next Instruction: ${nextInstruction}</p>
+        <p>Remaining distance to end of step: ${Math.round(distanceToEnd)} meters</p>
+    `;
+}
+
+function updateInstructions(stepIndex) {
+    const instructionsDiv = document.getElementById('instructions');
+    if (stepIndex < steps.length) {
+        const step = steps[stepIndex];
+        instructionsDiv.innerHTML = <p>Next Instruction: ${step.html_instructions}</p>;
+    } else {
+        instructionsDiv.innerHTML = '<p>You have reached your destination.</p>';
+    }
+}

@@ -16,7 +16,9 @@
             var directionsRenderer;
             var routeCoordinates = [];
             var instructions = [];
+            var curr_pos;
 
+           
             function initMap() {
                 displayMap();
             }
@@ -32,16 +34,58 @@
                 });
 
                 getDirection();
-                setupInstructionsPanel();
+                // setupInstructionsPanel();
             }
+
+            function getLocation(){
+            
+            if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                 curr_pos = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                };
+
+                var bikeMarker = new google.maps.Marker({
+                    position: curr_pos,
+                    map: map,
+                    icon: {
+                        url: "https://maps.google.com/mapfiles/kml/shapes/cabs.png",
+                        scaledSize: new google.maps.Size(48, 48),
+                        origin: new google.maps.Point(0, 0),
+                        anchor: new google.maps.Point(24, 24),
+                    },
+                });
+
+                function animateCurrentlocation(){
+                            
+                        bikeMarker.setPosition(curr_pos);
+                        map.panTo(curr_pos);
+                        map.setZoom(18);
+                        map.setTilt(45); 
+                        console.log(curr_pos)
+                }
+
+                
+
+            });
+            } else {
+            // Browser doesn't support Geolocation
+            console.log("Browser doesn't support Geolocation")
+        
+            }
+        
+    }
 
             function getDirection() {
                 directionsRenderer = new google.maps.DirectionsRenderer();
                 directionsService = new google.maps.DirectionsService();
                 directionsRenderer.setMap(map);
 
-                const start = "Royal Enfield HQ, Sholinganallur, Chennai";
-                const end = "Karapakkam, Chennai";
+                 const start = "Royal Enfield HQ, Sholinganallur, Chennai";
+            
+                const end = "BSR Mall, Chennai";
 
                 directionsService.route({
                     origin: start,
@@ -50,11 +94,11 @@
                 }, (response, status) => {
                     if (status === google.maps.DirectionsStatus.OK) {
                         directionsRenderer.setDirections(response);
-                        extractRouteCoordinates(response.routes[0].legs[0]);
-                        displayRouteInfo(response.routes[0].legs[0]);
+                        // extractRouteCoordinates(response.routes[0].legs[0]);
+                        // displayRouteInfo(response.routes[0].legs[0]);
 
-                        // Animate bike marker along the route
-                        animateBikeAlongRoute();
+                        setTimeout(animateBikeAlongRoute(),3000)
+                        
                     } else {
                         console.error("Directions request failed due to " + status);
                     }
@@ -82,12 +126,12 @@
                         });
                     }
                 });
-                routeCoordinates.push(routeLeg.end_location);
-                instructions.push({
-                    text: "Arrive at destination",
-                    distance: "",
-                    duration: ""
-                });
+                // routeCoordinates.push(routeLeg.end_location);
+                // instructions.push({
+                //     text: "Arrive at destination",
+                //     distance: "",
+                //     duration: ""
+                // });
             }
 
             function setupInstructionsPanel() {
@@ -98,60 +142,65 @@
             }
 
             function animateBikeAlongRoute() {
-                if (!routeCoordinates.length) return;
+                
+                console.log("Start navigation")
 
+                setInterval(getLocation,1000);
+                
                 // Set bike marker at the start location
-                bikeMarker = new google.maps.Marker({
-                    position: routeCoordinates[0],
-                    map: map,
-                    icon: {
-                        url: "https://maps.google.com/mapfiles/kml/shapes/cycling.png",
-                        scaledSize: new google.maps.Size(48, 48),
-                        origin: new google.maps.Point(0, 0),
-                        anchor: new google.maps.Point(24, 24),
-                    },
-                });
+                // bikeMarker = new google.maps.Marker({
+                //     position: curr_pos,
+                //     map: map,
+                //     icon: {
+                //         url: "https://maps.google.com/mapfiles/kml/shapes/cabs.png",
+                //         scaledSize: new google.maps.Size(48, 48),
+                //         origin: new google.maps.Point(0, 0),
+                //         anchor: new google.maps.Point(24, 24),
+                //     },
+                // });
 
-                var speed = 2000; // Adjust as needed for animation speed
-                var index = 0;
+                
 
-                function animate() {
-                    if (index < routeCoordinates.length) {
-                        bikeMarker.setPosition(routeCoordinates[index]);
-                        map.panTo(routeCoordinates[index]);
-                        map.setZoom(18); // Set desired zoom level
-                        map.setTilt(45); // Set desired tilt
-                        displayCurrentInstruction(index);
-                        index++;
-                        setTimeout(animate, speed);
-                    }
-                }
+                // var speed = 2000; // Adjust as needed for animation speed
+                // var index = 0;
 
-                animate();
+                // function animate() {
+                //     if (index < routeCoordinates.length) {
+                //         bikeMarker.setPosition(curr_pos);
+                //         map.panTo(curr_pos);
+                //         map.setZoom(18); // Set desired zoom level
+                //         map.setTilt(45); // Set desired tilt
+                //         // displayCurrentInstruction(index);
+                //         index++;
+                //         setTimeout(animate, speed);
+                //     }
+                // }
+
+                // animate();
             }
 
-            function displayCurrentInstruction(index) {
-                if (!instructionsPanel) return;
+            // function displayCurrentInstruction(index) {
+            //     if (!instructionsPanel) return;
 
-                var instructionHTML = "<div>";
-                instructionHTML += "<p><strong>Instruction:</strong> " + instructions[index].text + "</p>";
-                instructionHTML += "<p><strong>Distance:</strong> " + instructions[index].distance + "</p>";
-                instructionHTML += "<p><strong>Duration:</strong> " + instructions[index].duration + "</p>";
-                instructionHTML += "</div>";
+            //     var instructionHTML = "<div>";
+            //     instructionHTML += "<p><strong>Instruction:</strong> " + instructions[index].text + "</p>";
+            //     instructionHTML += "<p><strong>Distance:</strong> " + instructions[index].distance + "</p>";
+            //     instructionHTML += "<p><strong>Duration:</strong> " + instructions[index].duration + "</p>";
+            //     instructionHTML += "</div>";
 
-                instructionsPanel.innerHTML = instructionHTML;
-            }
+            //     instructionsPanel.innerHTML = instructionHTML;
+            // }
 
-            function displayRouteInfo(routeLeg) {
-                if (!instructionsPanel) return;
+            // function displayRouteInfo(routeLeg) {
+            //     if (!instructionsPanel) return;
 
-                var routeInfoHTML = "<div>";
-                routeInfoHTML += "<p><strong>Total Distance:</strong> " + routeLeg.distance.text + "</p>";
-                routeInfoHTML += "<p><strong>Total Duration:</strong> " + routeLeg.duration.text + "</p>";
-                routeInfoHTML += "</div>";
+            //     var routeInfoHTML = "<div>";
+            //     routeInfoHTML += "<p><strong>Total Distance:</strong> " + routeLeg.distance.text + "</p>";
+            //     routeInfoHTML += "<p><strong>Total Duration:</strong> " + routeLeg.duration.text + "</p>";
+            //     routeInfoHTML += "</div>";
 
-                instructionsPanel.innerHTML += routeInfoHTML;
-            }
+            //     instructionsPanel.innerHTML += routeInfoHTML;
+            // }
 
             exports.initMap = initMap;
         })((this.window = this.window || {}));
